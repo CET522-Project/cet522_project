@@ -192,20 +192,20 @@ with tab2:
         return fig, ax
     
     st.subheader("Association of population density and median household income with micromobility usage")
-    selected_areas = data.dropna(subset=["avg_count", "log_POP_DENSITY", "MED_HH_INCOME", "log_avg_count", "log_POP_DENSITY"])
+    selected_areas = data.dropna(subset=["avg_count", "log_POP_DENSITY", "MED_HH_INCOME", "log_avg_count", "log_POP_DENSITY"]).copy()
     selected_areas["Seattle"] = [1 if x == "033" else 0 for x in selected_areas["COUNTYFP"]]
 
     x_sea = selected_areas[selected_areas["Seattle"] == 1]["avg_count"]
     x_spo = selected_areas[selected_areas["Seattle"] == 0]["avg_count"]
 
     fig, ax = plt.subplots(figsize = (12, 3))
-    ax.boxplot([x_sea, x_spo], labels = ["Seattle", "Spokane"], vert=False)
+    ax.boxplot([x_sea, x_spo], tick_labels = ["Seattle", "Spokane"], orientation = "horizontal")
     ax.set(
         ylabel = "City", 
         xlabel = "Average Micromobility Counts",
         title = "Distribution of Average Micromobility Usage by City"
     )
-    st.pyplot(fig)
+    st.pyplot(fig, clear_figure=False)
 
     if "Seattle" in agg_city and "Spokane" not in agg_city:
         selected_areas = selected_areas[selected_areas["Seattle"] == 1]
@@ -287,7 +287,7 @@ with tab3:
         top_ten_counts(spokane_micro_streets)
 
     st.subheader("E/R Diagram")
-    st.image("er_diagram.jpg", use_container_width=True)
+    st.image("er_diagram.jpg", width="stretch")
 
     st.subheader("Limitations")
     st.write("This analysis is subject to several data limitations. The micromobility dataset provides aggregated trip counts by street segment but does not distinguish between mode types such as e-bikes or scooters, nor does it identify specific service providers. As a result, differences in deployment patterns across micromobility modes cannot be evaluated. In addition, the dataset represents cumulative trip counts across the observation period and does not include temporal detail such as daily or hourly activity. This prevents analysis of potential differences in weekday versus weekend usage patterns.")
