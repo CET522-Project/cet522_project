@@ -60,11 +60,6 @@ agg_map = st.sidebar.selectbox("Analysis Unit:", ["Census", "Grid",], index=0)
 # ----------------------------
 col1, col2, col3, col4 = st.columns(4)
 
-# total_vehicles = int(filtered["Vehicles"].sum())
-# avg_vehicles = float(filtered["Vehicles"].mean())
-# peak_row = filtered.loc[filtered["Vehicles"].idxmax()]
-# busiest_junction = filtered.groupby("Junction")["Vehicles"].sum().idxmax()
-
 col1.metric("Seattle, Average Micromobility Count", f"${seattle_micro_streets["count"].mean():,.0f}")
 col2.metric("Spokane, Average Micromobility Count", f"${spokane_micro_streets["count"].mean():,.0f}")
 
@@ -86,10 +81,6 @@ tab1, tab2, tab3 = st.tabs(["Maps", "ML Model", "Data and Summary",])
 # Tab 1
 # ----------------------------
 with tab1:
-    def style_categorical(feature):
-        t = feature["properties"].get("type")
-        return {"color": color_map.get(t, "#555555"), "weight": 3, "opacity": 0.9}
-    
     # make a map from variables
     def make_map_from(value, title, df):
         minx, miny, maxx, maxy = df.total_bounds
