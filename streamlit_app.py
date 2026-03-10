@@ -37,8 +37,8 @@ def load_geodata_from_path(path):
 
 CENSUS_DATA = load_geodata_from_path("census_data.geojson") # includes count data already
 GRID_DATA = load_geodata_from_path("grid_data.geojson") # includes count data already
-seattle_micro_streets = load_geodata_from_path("seattle-routes-data-for-all-vehicles-in-all-time.geojson").dropna(subset=["count"])
-spokane_micro_streets = load_geodata_from_path("spokane-routes-data-for-all-vehicles-in-all-time.geojson").dropna(subset=["count"])
+seattle_micro_streets = load_geodata_from_path("seattle_micro_streets.geojson").dropna(subset=["count"])
+spokane_micro_streets = load_geodata_from_path("spokane_micro_streets.geojson").dropna(subset=["count"])
 
 # ----------------------------
 # Sidebar controls
