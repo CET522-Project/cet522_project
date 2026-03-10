@@ -8,6 +8,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 import folium
 from streamlit_folium import st_folium
+import matplotlib.colors as mcolors
+import branca.colormap as cm
+
 
 # ----------------------------
 # Page config
@@ -34,10 +37,6 @@ def load_geodata_from_path(path):
     gdf = gpd.read_file(path)
     return  (gdf)
 
-@st.cache_data
-def _prepare_data(df):
-    return "hi"
-
 CENSUS_DATA = load_geodata_from_path("census_data.geojson") # includes count data already
 GRID_DATA = load_geodata_from_path("grid_data.geojson") # includes count data already
 seattle_micro_streets = load_geodata_from_path("seattle-routes-data-for-all-vehicles-in-all-time.geojson").dropna(subset=["count"])
@@ -59,18 +58,24 @@ agg_map = st.sidebar.selectbox("Analysis Unit:", ["Census", "Grid",], index=0)
 # ----------------------------
 # Top info + KPI cards
 # ----------------------------
-col1, col2, col3, col4, col5, col6 = st.columns(6)
+col1, col2, col3, col4 = st.columns(4)
 
 # total_vehicles = int(filtered["Vehicles"].sum())
 # avg_vehicles = float(filtered["Vehicles"].mean())
 # peak_row = filtered.loc[filtered["Vehicles"].idxmax()]
 # busiest_junction = filtered.groupby("Junction")["Vehicles"].sum().idxmax()
 
-col1.metric("Seattle, Average Micromobility Count", f"{seattle_micro_streets["count"].mean():,.0f}")
-col2.metric("Spokane, Average Micromobility Count", f"{spokane_micro_streets["count"].mean():,.0f}")
-# TODO FINISH THESE NUMBERS after adding the census filters for the streets
-col3.metric("Seattle, Number of Census Tracks", f"{0.0:,.0f}")
-col4.metric("Spokane, Number of Census Tracks", f"{0.0:,.0f}")
+col1.metric("Seattle, Average Micromobility Count", f"${seattle_micro_streets["count"].mean():,.0f}")
+col2.metric("Spokane, Average Micromobility Count", f"${spokane_micro_streets["count"].mean():,.0f}")
+
+king_county_tract_num = (CENSUS_DATA["COUNTYFP"]=="033").sum()
+spokane_county_track_num = (CENSUS_DATA["COUNTYFP"]=="063").sum()
+col3.metric("KING COUNTY, Number of Census Tracks", f"{king_county_tract_num:,.0f}")
+col4.metric("SPOKANE COUNTY, Number of Census Tracks", f"{spokane_county_track_num:,.0f}")
+
+col5, col6, col7, col8 = st.columns(4)
+col5.metric("City of Seattle, Median Income", "$123,860")
+col6.metric("City of Spokane, Median Income", "$86,206")
 
 # ----------------------------
 # Tabs
@@ -81,13 +86,15 @@ tab1, tab2, tab3 = st.tabs(["Maps", "ML Model", "Data and Summary",])
 # Tab 1
 # ----------------------------
 with tab1:
-    st.subheader("Let's visualize data on our maps!")
-
+    def style_categorical(feature):
+        t = feature["properties"].get("type")
+        return {"color": color_map.get(t, "#555555"), "weight": 3, "opacity": 0.9}
+    
     # make a map from variables
     def make_map_from(value, title, df):
         minx, miny, maxx, maxy = df.total_bounds
-
         m = folium.Map(location=[((maxy+miny)/2), ((maxx+minx)/2)], zoom_start=9)
+        m.fit_bounds([[miny, minx], [maxy, maxx]]) 
         
         folium.Choropleth(
             geo_data=df.dropna(subset=value),
@@ -97,12 +104,34 @@ with tab1:
             fill_color="YlGnBu",
             fill_opacity=0.7,
             line_opacity=0.2,
-            legend_name=title
+            #legend_name=title TODO add title to all that revence this?
         ).add_to(m)
 
+        st_folium(m, width=600, height=550, key=str(df.count())+"_map")
+
+    # make a line map from variables
+    def make_line_map_from(value, title, df):
+        minx, miny, maxx, maxy = df.total_bounds
+        m = folium.Map(location=[((maxy+miny)/2), ((maxx+minx)/2)], zoom_start=9)
         m.fit_bounds([[miny, minx], [maxy, maxx]]) 
+
+        cmap = cm.LinearColormap(
+            colors=["#440154", "#31688e", "#35b779", "#fde725"],
+            vmin=df[value].min(), vmax=df[value].max()
+        )
+        folium.GeoJson(
+            df.to_crs(4326),
+            style_function=lambda f: {
+                "color": cmap(f["properties"][value]),
+                "weight": 4,
+                "opacity": 0.9
+            }
+        ).add_to(m)
+        cmap.add_to(m)
+
+
+        st_folium(m, width=600, height=550, key=str(df.count())+"_map")
         
-        st_folium(m, width=800, height=550, key=city+"_map")
     
     # gets tract id from city name
     def get_city_id(city_name):
@@ -113,6 +142,24 @@ with tab1:
                 return "063"
             case _:
                 return "no id implemented"
+    st.subheader("Let's visualize data with maps!")
+
+    # ----------------------------
+    # MAPS OF the street data
+    # ----------------------------
+    #TODO ADD SLIDE for minimum count value
+    #TODO ADD switch for log values
+    if ("Seattle" in agg_city):
+        max = seattle_micro_streets["count"].max()
+        make_line_map_from("count", "title", seattle_micro_streets[seattle_micro_streets["count"]>max/10])
+    if ("Spokane" in agg_city):
+        max = spokane_micro_streets["count"].max()
+        make_line_map_from("count", "title", spokane_micro_streets[spokane_micro_streets["count"]>max/10])
+
+
+    # ----------------------------
+    # MAPS OF the census/grid data
+    # ----------------------------
 
     # if a city is selected:
     if (agg_city):
